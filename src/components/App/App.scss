@@ -1,0 +1,30 @@
+@use '~styles/variables' as *;
+
+body {
+  background-color: $color-dark-gray;
+  font-family: 'Helvetica-Light', Helvetica, Arial, sans-serif;
+}
+
+.app {
+  color: $color-white;
+
+  hr {
+    margin-bottom: 0;
+    margin-top: 0;
+    opacity: 0.15;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  font-weight: bold;
+  font-size: $font-title;
+
+  img {
+    height: 70px;
+    float: left;
+    margin-right: 1em;
+  }
+}
