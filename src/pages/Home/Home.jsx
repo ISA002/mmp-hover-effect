@@ -1,11 +1,25 @@
-import React, { Fragment } from 'react';
+import React from 'react';
+import Scene from './Scene';
+import style from './Home.scss';
 
-import Users from './Users';
+const Home = () => {
+  const ref = React.useRef();
 
-const Home = () => (
-  <Fragment>
-    <Users />
-  </Fragment>
-);
+  React.useEffect(() => {
+    const scene = new Scene(ref.current);
+
+    return () => {
+      scene.destroyListener();
+    };
+  }, [ref]);
+
+  return (
+    <div className={style.root}>
+      <div className={style.container}>
+        <div className={style.imageWrapper} ref={ref} />
+      </div>
+    </div>
+  );
+};
 
 export default Home;

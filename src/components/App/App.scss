@@ -1,12 +1,11 @@
 @use '~styles/variables' as *;
 
 body {
-  background-color: $color-dark-gray;
   font-family: 'Helvetica-Light', Helvetica, Arial, sans-serif;
 }
 
 .app {
-  color: $color-white;
+  color: black;
 
   hr {
     margin-bottom: 0;

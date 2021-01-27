@@ -4,6 +4,8 @@ global.RUNTIME_ENV = 'server';
 
 require('../../tools/hooks')();
 
+require('pixi-shim');
+
 const server = require('./server').default;
 const webpackDev = require('./webpack-dev').default;
 const applyLogger = require('./logger').default;
