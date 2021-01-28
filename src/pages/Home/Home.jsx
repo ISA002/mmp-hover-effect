@@ -1,12 +1,13 @@
 import React from 'react';
 import Scene from './Scene';
 import style from './Home.scss';
+import images from './images';
 
 const Home = () => {
   const ref = React.useRef();
 
   React.useEffect(() => {
-    const scene = new Scene(ref.current);
+    const scene = new Scene(ref.current, images);
 
     return () => {
       scene.destroyListener();
