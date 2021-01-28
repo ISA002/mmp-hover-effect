@@ -2,6 +2,7 @@
 
 import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
+import { BulgePinchFilter } from 'pixi-filters';
 
 window.PIXI = PIXI;
 export default class Scene {
@@ -25,6 +26,7 @@ export default class Scene {
     this.prevPosition = { x: 0, y: 0 };
     this.currentIndex = 0;
     this.distanceLength = 120;
+    this.cardSize = { width: 200, height: 200 };
 
     this.canvasContainer.appendChild(this.app.view);
 
@@ -33,6 +35,7 @@ export default class Scene {
 
   destroyListener = () => {
     this.app.stage.removeAllListeners();
+    this.canvasContainer.removeEventListener(this.pointerMove);
   };
 
   preload = () => {
@@ -46,59 +49,118 @@ export default class Scene {
     });
   };
 
+  calculateSizeImage = (wWidth, wHeight, { orig }, cover) => {
+    const { height: targetH, width: targetW } = orig;
+    const rw = wWidth / targetW;
+    const rh = wHeight / targetH;
+    let r;
+    if (cover) {
+      r = rw > rh ? rw : rh;
+    } else {
+      r = rw < rh ? rw : rh;
+    }
+    return {
+      left: (wWidth - targetW * r) >> 1,
+      top: (wHeight - targetH * r) >> 1,
+      width: targetW * r,
+      height: targetH * r,
+      scale: r,
+      uvRate: {
+        x: (targetW * r) / wWidth,
+        y: (targetH * r) / wHeight,
+      },
+    };
+  };
+
   imageAppear = (x, y) => {
     const imageTexture = new PIXI.Texture.from(
       this.imagesArray[this.currentIndex]
     );
+
+    const imageContainer = new PIXI.Container();
+
     const imageSprite = new PIXI.Sprite(imageTexture);
-    imageSprite.position.set(x, y);
+    imageContainer.position.set(x, y);
 
-    const circleSprite = new PIXI.Sprite.from(PIXI.Texture.WHITE);
-    circleSprite.position.set(x, y);
+    const radius = { x: 0 };
 
-    this.imageContainer.addChild(circleSprite);
-    imageSprite.mask = circleSprite;
-    circleSprite.anchor.set(0.5);
+    const circle = new PIXI.Graphics()
+      .beginFill(0xde3249, 1)
+      .drawCircle(0, 0, radius.x)
+      .endFill();
 
-    imageSprite.width = 200;
-    imageSprite.height = 200;
+    const containValues = this.calculateSizeImage(
+      this.cardSize.width,
+      this.cardSize.height,
+      imageTexture,
+      false
+    );
 
+    imageSprite.scale.set(containValues.scale, containValues.scale);
     imageSprite.anchor.set(0.5);
 
-    this.imageContainer.addChild(imageSprite);
+    imageSprite.mask = circle;
 
+    const myFilter = new BulgePinchFilter([0.5, 0.5]);
+    imageContainer.filters = [myFilter];
+
+    imageContainer.addChild(imageSprite);
+    imageContainer.addChild(circle);
+
+    this.imagesWrapperContainer.addChild(imageContainer);
+
+    myFilter.uniforms.radius = 0;
+    myFilter.uniforms.strength = 0;
     this.tl = gsap
       .timeline()
-      .to(circleSprite.scale, {
-        x: 25,
-        y: 25,
-        duration: 0.6,
+      .to(radius, {
+        x: 200,
+        duration: 0.9,
+        onUpdate: () => {
+          circle.clear();
+          circle.beginFill(0xde3249, 1);
+          circle.drawCircle(0, 0, radius.x);
+          circle.endFill();
+        },
+        ease: 'power3.out',
       })
+      .to(
+        myFilter.uniforms,
+        {
+          duration: 0.2,
+          strength: 1,
+          radius: 200,
+          onComplete: () => {
+            imageContainer.filters = null;
+          },
+        },
+        '-=0.9'
+      )
       .to(imageSprite, {
         alpha: 0,
-        duration: 0.6,
+        duration: 0.3,
       })
       .add(() => {
-        this.imageContainer.removeChild(imageSprite);
-        this.imageContainer.removeChild(circleSprite);
+        this.imagesWrapperContainer.removeChild(imageContainer);
       });
 
-    gsap.to(imageSprite.position, {
+    gsap.to(imageContainer.position, {
       x: this.mouse.x,
       y: this.mouse.y,
       duration: 2,
+      ease: 'power3',
     });
   };
 
   setup = () => {
     this.root.width = window.innerWidth;
     this.root.height = window.innerHeight;
-    this.imageContainer = new PIXI.Container();
-    this.root.addChild(this.imageContainer);
+    this.imagesWrapperContainer = new PIXI.Container();
+    this.root.addChild(this.imagesWrapperContainer);
 
     this.app.stage.interactive = true;
 
-    this.app.stage.on('mousemove', this.pointerMove);
+    this.canvasContainer.addEventListener('mousemove', this.pointerMove);
   };
 
   distance = (x1, x2, y1, y2) => {
@@ -106,8 +168,8 @@ export default class Scene {
   };
 
   pointerMove = event => {
-    this.mouse.x = event.data.global.x;
-    this.mouse.y = event.data.global.y;
+    this.mouse.x = event.clientX;
+    this.mouse.y = event.clientY;
   };
 
   render = () => {
