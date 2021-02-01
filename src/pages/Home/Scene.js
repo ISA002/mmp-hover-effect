@@ -2,7 +2,7 @@
 
 import * as PIXI from 'pixi.js';
 import gsap from 'gsap';
-import { BulgePinchFilter } from 'pixi-filters';
+import { ShockwaveFilter } from 'pixi-filters';
 
 window.PIXI = PIXI;
 export default class Scene {
@@ -79,16 +79,22 @@ export default class Scene {
 
     const imageContainer = new PIXI.Container();
 
+    const bg = new PIXI.Graphics()
+      .beginFill(0xde3249, 0)
+      .drawRect(-250, -250, 500, 500)
+      .endFill();
+
+    imageContainer.addChild(bg);
+
     const imageSprite = new PIXI.Sprite(imageTexture);
+
     imageContainer.position.set(x, y);
 
     const radius = { x: 0 };
-
     const circle = new PIXI.Graphics()
       .beginFill(0xde3249, 1)
       .drawCircle(0, 0, radius.x)
       .endFill();
-
     const containValues = this.calculateSizeImage(
       this.cardSize.width,
       this.cardSize.height,
@@ -98,43 +104,62 @@ export default class Scene {
 
     imageSprite.scale.set(containValues.scale, containValues.scale);
     imageSprite.anchor.set(0.5);
-
     imageSprite.mask = circle;
 
-    const myFilter = new BulgePinchFilter([0.5, 0.5]);
-    imageContainer.filters = [myFilter];
+    const waveFilter = new ShockwaveFilter([
+      containValues.width / 2,
+      containValues.height / 2,
+    ]);
+
+    imageSprite.filters = [waveFilter];
 
     imageContainer.addChild(imageSprite);
     imageContainer.addChild(circle);
 
     this.imagesWrapperContainer.addChild(imageContainer);
 
-    myFilter.uniforms.radius = 0;
-    myFilter.uniforms.strength = 0;
+    const nextR =
+      Math.sqrt(this.cardSize.width ** 2 + this.cardSize.height ** 2) / 2;
+
+    waveFilter.uniforms.time = 0;
+    waveFilter.uniforms.radius = nextR * 1.2;
+    waveFilter.uniforms.amplitude = 20;
+    waveFilter.wavelength = 0;
+
+    const scaleX = (imageSprite.scale.x *= 1.2);
+    const scaleY = (imageSprite.scale.y *= 1.2);
+
     this.tl = gsap
       .timeline()
       .to(radius, {
-        x: 200,
-        duration: 0.9,
+        x: nextR,
+        duration: 0.7,
         onUpdate: () => {
           circle.clear();
           circle.beginFill(0xde3249, 1);
           circle.drawCircle(0, 0, radius.x);
           circle.endFill();
         },
-        ease: 'power3.out',
       })
       .to(
-        myFilter.uniforms,
+        waveFilter,
         {
-          duration: 0.2,
-          strength: 1,
-          radius: 200,
-          onComplete: () => {
-            imageContainer.filters = null;
-          },
+          duration: 0.8,
+          time: 0.4,
+          ease: 'power1.out',
+          wavelength: 200,
         },
-        '-=0.9'
+        0.01
+      )
+      .to(
+        imageSprite.scale,
+        {
+          x: scaleX / 1.2,
+          y: scaleY / 1.2,
+          duration: 0.7,
+          ease: 'power4.out',
+        },
+        0.1
       )
       .to(imageSprite, {
         alpha: 0,
@@ -143,7 +168,6 @@ export default class Scene {
       .add(() => {
         this.imagesWrapperContainer.removeChild(imageContainer);
       });
-
     gsap.to(imageContainer.position, {
       x: this.mouse.x,
       y: this.mouse.y,
